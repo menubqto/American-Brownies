@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>American Brownies - Menú Digital</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDKs (Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
+        // Expose Firebase to window for React component access
+        window.firebaseApp = { 
+            initializeApp, 
+            getFirestore, 
+            doc, 
+            onSnapshot, 
+            setDoc, 
+            updateDoc, 
+            arrayUnion, 
+            arrayRemove, 
+            getDoc, 
+            collection,
+            getAuth, 
+            signInAnonymously, 
+            onAuthStateChanged,
+            signInWithCustomToken 
+        };
+    </script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Lato', sans-serif; background-color: #FDFBF7; }
+        h1, h2, h3, .font-serif { font-family: 'Playfair Display', serif; }
+        .font-script { font-family: 'Dancing Script', cursive; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #8B4513; border-radius: 4px; }
+        
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #8B4513;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Animation for accordion */
+        .accordion-enter { max-height: 0; opacity: 0; }
+        .accordion-enter-active { max-height: 1000px; opacity: 1; transition: all 500ms ease-in-out; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // ICONOS PERSONALIZADOS (SVG Inline)
+        // ==========================================
+        const CUSTOM_ICONS = {
+            brownie: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="6" width="18" height="15" rx="2" />
+                    <path d="M3 10h18" />
+                    <path d="M7 6V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2" />
+                    <circle cx="8.5" cy="14.5" r="1.5" fill="currentColor" fillOpacity="0.2"/>
+                    <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor" fillOpacity="0.2"/>
+                    <circle cx="12" cy="17.5" r="1.5" fill="currentColor" fillOpacity="0.2"/>
+                </svg>
+            ),
+            cookie: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 17l-1-1c-2.5-2-4-3.5-4-5.5a2.5 2.5 0 0 1 4-2c.5 0 1 .5 1 .5s.5-.5 1-.5a2.5 2.5 0 0 1 4 2c0 2-1.5 3.5-4 5.5z" strokeWidth="1.5" />
+                </svg>
+            ),
+            coffee: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                    <line x1="6" y1="1" x2="6" y2="4" />
+                    <line x1="10" y1="1" x2="10" y2="4" />
+                    <line x1="14" y1="1" x2="14" y2="4" />
+                </svg>
+            ),
+            cake: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+                    <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1" />
+                    <path d="M2 21h20" />
+                    <path d="M7 8v2" />
+                    <path d="M12 8v2" />
+                    <path d="M17 8v2" />
+                    <path d="M7 4h.01" strokeWidth="3"/>
+                    <path d="M12 4h.01" strokeWidth="3"/>
+                    <path d="M17 4h.01" strokeWidth="3"/>
+                </svg>
+            ),
+            shake: (
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 21h10l1.5-10h-13z" />
+                    <path d="M5.5 11h13" />
+                    <path d="M6 11c0-3 2.5-5 6-5s6 2 6 5" />
+                    <path d="M12 6V2" />
+                    <line x1="7" y1="16" x2="17" y2="16" strokeOpacity="0.5" />
+                </svg>
+            ),
+             fit: (
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor" fillOpacity="0.1" />
+                </svg>
+            ),
+            brunch: (
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <ellipse cx="12" cy="18" rx="8" ry="3" />
+                    <ellipse cx="12" cy="14" rx="7.5" ry="2.8" />
+                    <ellipse cx="12" cy="10" rx="7" ry="2.5" />
+                    <path d="M10 6h4a1 1 0 0 1 1 1v1h-6V7a1 1 0 0 1 1-1z" fill="currentColor" fillOpacity="0.2"/>
+                    <path d="M14 8v4c0 1-2 2-2 2s-2-1-2-2V8" />
+                </svg>
+            ),
+            croissant: (
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 19c-3-2-4-5-2-9 2-3 6-4 9-2 4 2 5 6 3 9" />
+                    <path d="M7 19c2 2 5 2 8 0" />
+                    <path d="M9 10c0-2 2-3 3-3" />
+                    <path d="M6 14c1-2 3-3 5-3" />
+                    <path d="M13 11c2 0 4 1 5 3" />
+                    <path d="M2 17l5 2" />
+                    <path d="M17 19l5-2" />
+                </svg>
+            ),
+            toppings: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 10h10v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V10z" />
+                    <rect x="4" y="6" width="12" height="4" rx="1" />
+                    <rect x="7" y="13" width="6" height="4" rx="1" fill="currentColor" fillOpacity="0.2"/>
+                    <path d="M19 12c2 0 3 2 3 4s-2 6-5 6-5-4-3-6c0-2 1-4 3-4" />
+                    <path d="M17 12c0-1 1-2 2-2s2 1 2 2" />
+                </svg>
+            ),
+            // --- NUEVOS ICONOS ---
+            waffle: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="3" y1="15" x2="21" y2="15" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    <line x1="15" y1="3" x2="15" y2="21" />
+                </svg>
+            ),
+            icecream: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11" />
+                    <path d="M17 11a5 5 0 0 0-10 0" />
+                    <path d="M17 11h-2" />
+                    <path d="M17 7a2 2 0 1 1 4 0v4h-4" />
+                    <line x1="12" y1="4" x2="12" y2="9" />
+                </svg>
+            ),
+            pizza: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 11h.01" strokeWidth="3"/>
+                    <path d="M11 15h.01" strokeWidth="3"/>
+                    <path d="M16 16h.01" strokeWidth="3"/>
+                    <path d="M2 10l10 12 10-12" />
+                    <path d="M12 2a8 8 0 0 1 10 8H2a8 8 0 0 1 10-8z" />
+                </svg>
+            ),
+            burger: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="15" width="16" height="4" rx="2" />
+                    <path d="M4 9h16" />
+                    <path d="M20 9c0-3-2-5-5-5H9C6 4 4 6 4 9" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                </svg>
+            ),
+            gift: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="8" width="18" height="4" rx="1" />
+                    <path d="M12 8v13" />
+                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+                    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.9 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
+                </svg>
+            ),
+            soda: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5z" />
+                    <path d="M9 3v18" />
+                    <path d="M15 22V3" />
+                </svg>
+            ),
+            muffin: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V11l2.5-4h13L21 11v8a2 2 0 0 1-2 2z" />
+                    <path d="M12 7a4 4 0 0 0-8 0" />
+                    <path d="M12 7a4 4 0 0 1 8 0" />
+                    <path d="M6 7h12" />
+                </svg>
+            ),
+            donut: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 3a9 9 0 0 1 9 9" opacity="0.5"/>
+                </svg>
+            ),
+            star: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+            ),
+            fire: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                </svg>
+            ),
+            tea: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+                    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+                    <line x1="6" y1="1" x2="6" y2="4" />
+                    <line x1="10" y1="1" x2="10" y2="4" />
+                    <line x1="14" y1="1" x2="14" y2="4" />
+                    <path d="M13 13l-2 3" opacity="0.5"/>
+                </svg>
+            )
+        };
+
+        // ==========================================
+        // CONFIGURACIÓN DE COLORES
+        // ==========================================
+        const THEMES = {
+            coffee:   { bg: "bg-[#EFEBE9]", text: "text-[#5D4037]", accent: "bg-[#D7CCC8]", border: "border-[#8D6E63]" },
+            orange:   { bg: "bg-[#FFF3E0]", text: "text-[#E65100]", accent: "bg-[#FFE0B2]", border: "border-[#FFB74D]" },
+            red:      { bg: "bg-[#FFEBEE]", text: "text-[#C62828]", accent: "bg-[#FFCDD2]", border: "border-[#E57373]" },
+            yellow:   { bg: "bg-[#FFFDE7]", text: "text-[#F9A825]", accent: "bg-[#FFF9C4]", border: "border-[#FFF176]" },
+            olive:    { bg: "bg-[#F1F8E9]", text: "text-[#558B2F]", accent: "bg-[#DCEDC8]", border: "border-[#AED581]" },
+            violet:   { bg: "bg-[#F3E5F5]", text: "text-[#6A1B9A]", accent: "bg-[#E1BEE7]", border: "border-[#BA68C8]" },
+            green:    { bg: "bg-[#E8F5E9]", text: "text-[#2E7D32]", accent: "bg-[#C8E6C9]", border: "border-[#81C784]" },
+            pink:     { bg: "bg-[#FCE4EC]", text: "text-[#C2185B]", accent: "bg-[#F8BBD0]", border: "border-[#F06292]" },
+            sky:      { bg: "bg-[#E1F5FE]", text: "text-[#0277BD]", accent: "bg-[#B3E5FC]", border: "border-[#4FC3F7]" },
+            dark:     { bg: "bg-[#3E2723]", text: "text-[#EFEBE9]", accent: "bg-[#5D4037]", border: "border-[#8D6E63]" },
+            // --- NUEVOS COLORES ---
+            teal:     { bg: "bg-[#E0F2F1]", text: "text-[#00695C]", accent: "bg-[#B2DFDB]", border: "border-[#4DB6AC]" },
+            indigo:   { bg: "bg-[#E8EAF6]", text: "text-[#283593]", accent: "bg-[#C5CAE9]", border: "border-[#7986CB]" },
+            gold:     { bg: "bg-[#FFF8E1]", text: "text-[#FF6F00]", accent: "bg-[#FFECB3]", border: "border-[#FFCA28]" },
+            rose:     { bg: "bg-[#FFEBEE]", text: "text-[#880E4F]", accent: "bg-[#FFCDD2]", border: "border-[#EC407A]" },
+        };
+
+        // ==========================================
+        // DATA SEMILLA (Actualizada v3)
+        // ==========================================
+        const SEED_DATA = {
+            categories: [
+                {
+                    id: "cat_brownies",
+                    name: "Brownies Creations",
+                    iconType: "brownie",
+                    visible: true,
+                    description: "Ingredientes genuinos en cada bocado.",
+                    colorTheme: "coffee",
+                    items: [
+                        { id: "b1", name: "Brownie Naked", desc: "Brownie sin topping. Sabor puro.", price: "5" },
+                        { id: "b2", name: "Brownie Classic", desc: "Con Nutella y el topping de tu elección.", price: "7" },
+                        { id: "b3", name: "Red Velvet Brownie", desc: "Con Nutella, crema de Chocolate Blanco y Oreo.", price: "8" },
+                        { id: "b4", name: "Peanut Butter & Cookie", desc: "Mantequilla de maní, Nutella y trocitos de galletas.", price: "7" },
+                        { id: "b5", name: "Concorde Brownie", desc: "Brownie, mousse de chocolate, Nutella y suspiros.", price: "10" },
+                        { id: "b6", name: "Nutella Vulcano", desc: "Volcán de brownie con centro de Nutella.", price: "5" },
+                        { id: "b7", name: "Brownie al Helado", desc: "Para 2 personas. Helado, brownie, Nutella y topping.", price: "13" }
+                    ]
+                },
+                {
+                    id: "cat_cookies",
+                    name: "The Best Cookies",
+                    iconType: "cookie",
+                    visible: true,
+                    description: "Crujientes por fuera, suaves por dentro.",
+                    colorTheme: "orange",
+                    items: [
+                        { id: "c1", name: "Vanilla Chocolate Chip", desc: "Clásica con chispas de chocolate.", price: "2.5" },
+                        { id: "c2", name: "Vanilla Cookie S'more", desc: "Sandwich con marshmallows flameados y Nutella.", price: "6" },
+                        { id: "c3", name: "Explosion Nutella", desc: "Galleta rellena de Nutella.", price: "4" },
+                        { id: "c4", name: "Brookie Cookie", desc: "Brownie envuelto en chocolate chips cookie.", price: "4" },
+                        { id: "c5", name: "Crookie", desc: "Croissant relleno y envuelto en galleta.", price: "6" },
+                        { id: "c6", name: "The White Queen", desc: "Chocolate blanco y nueces (New York Style).", price: "4" },
+                        { id: "c7", name: "Double Chocolate King", desc: "Chocolate semiamargo y nueces (New York Style).", price: "4" }
+                    ]
+                },
+                {
+                    id: "cat_cheesecake",
+                    name: "NY Cheesecakes",
+                    iconType: "cake",
+                    visible: true,
+                    description: "Cremosos y deliciosos.",
+                    colorTheme: "red",
+                    items: [
+                        { id: "ch1", name: "Tri-Berry Cheesecake", desc: "Confitura de fresa, moras y arándanos.", price: "9" },
+                        { id: "ch2", name: "Ferrero Nutella", desc: "Con Nutella y Ferrero Rocher.", price: "10" },
+                        { id: "ch3", name: "Peanut Butter Dream", desc: "Nutella, mantequilla de maní y Reese's.", price: "8" },
+                        { id: "ch4", name: "Oreo Brownie Cheesecake", desc: "Con Oreo en su centro y topping de Nutella.", price: "7.5" }
+                    ]
+                },
+                 {
+                    id: "cat_brunch",
+                    name: "All Day Brunch",
+                    iconType: "brunch",
+                    visible: true,
+                    description: "Desayunos todo el día.",
+                    colorTheme: "yellow",
+                    items: [
+                        { id: "br1", name: "Desayuno Americano", desc: "Huevos revueltos, tocineta y waffle.", price: "8" },
+                        { id: "br2", name: "Desayuno Fit", desc: "Huevos, tocineta y panquecas fit (Sin azúcar/gluten).", price: "10" },
+                        { id: "br3", name: "Panquecas Pistacho Deluxe", desc: "Fit. Crema de pistacho y fresas.", price: "14" },
+                        { id: "br4", name: "Waffle con Nutella", desc: "Con topping de Nutella.", price: "6" },
+                        { id: "br5", name: "Waffle Nutella y Fresas", desc: "Nutella y fresas troceadas.", price: "7.5" }
+                    ]
+                },
+                {
+                    id: "cat_croissant",
+                    name: "Gourmet Croissants",
+                    iconType: "croissant",
+                    visible: true,
+                    description: "Salados y Dulces.",
+                    colorTheme: "olive",
+                    items: [
+                        { id: "cr1", name: "Prunus Croissant", desc: "Melocotones, reducción Disaronno, jamón serrano, queso de cabra.", price: "9" },
+                        { id: "cr2", name: "New York Croissant", desc: "Rúcula, champiñones bourbon, pastrami, queso cabra.", price: "8.5" },
+                        { id: "cr3", name: "American Brownies", desc: "Higos glaseados, queso cabra, tocineta, nueces.", price: "9" },
+                        { id: "cr4", name: "Génova Croissant", desc: "Queso cabra, cherrys al pesto, pecorino.", price: "7" },
+                        { id: "cr5", name: "Croissant Pistacho", desc: "Relleno de crema de pistacho.", price: "7" }
+                    ]
+                },
+                {
+                    id: "cat_coffee",
+                    name: "Coffee Bar",
+                    iconType: "coffee",
+                    visible: true,
+                    description: "Baristas expertos.",
+                    colorTheme: "dark",
+                    items: [
+                        { id: "cf1", name: "Americano", desc: "Espresso diluido.", price: "2" },
+                        { id: "cf2", name: "Latte", desc: "Espresso y leche vaporizada.", price: "3" },
+                        { id: "cf3", name: "Cappuccino", desc: "Espresso, leche y espuma.", price: "3.2" },
+                        { id: "cf4", name: "Mocaccino", desc: "Chocolate, espresso y leche.", price: "3.2" },
+                        { id: "cf5", name: "Bon Coffee", desc: "Con leche condensada.", price: "4" },
+                        { id: "cf6", name: "Affogato", desc: "Helado ahogado en espresso.", price: "6" }
+                    ]
+                },
+                {
+                    id: "cat_frappe",
+                    name: "Frappuccinos",
+                    iconType: "shake",
+                    visible: true,
+                    description: "Helado y café.",
+                    colorTheme: "violet",
+                    items: [
+                        { id: "fr1", name: "Classic Frappuccino", desc: "Helado y café.", price: "8" },
+                        { id: "fr2", name: "Oreo Frappuccino", desc: "Oreos, caramelo, chocolate, helado, café.", price: "9" },
+                        { id: "fr3", name: "Bailey's Irish Cream", desc: "Bailey's, caramelo, helado, café, marshmallows.", price: "12" },
+                        { id: "fr4", name: "Pistacho Frappuccino", desc: "Crema de pistacho, helado, café.", price: "14" }
+                    ]
+                },
+                 {
+                    id: "cat_fit",
+                    name: "Línea Fit",
+                    iconType: "fit",
+                    visible: true,
+                    description: "Sin azúcar, sin gluten, sin culpa.",
+                    colorTheme: "green",
+                    items: [
+                        { id: "ft1", name: "Brownie Fit", desc: "Fibra de calabacín, cacao, monk fruit.", price: "9" },
+                        { id: "ft2", name: "Helado Nocciola Fit", desc: "Sin azúcar.", price: "5" },
+                        { id: "ft3", name: "Helado Pistacho Fit", desc: "Sin azúcar.", price: "5" },
+                        { id: "ft4", name: "Tri-Berry Cheesecake Fit", desc: "Frutos rojos.", price: "9" },
+                        { id: "ft5", name: "Pistacho Dream Fit", desc: "Cheesecake de pistacho fit.", price: "12" }
+                    ]
+                },
+                {
+                    id: "cat_cakes",
+                    name: "Cakes to Share",
+                    iconType: "cake",
+                    visible: true,
+                    description: "Para tus celebraciones (Precios ref. Mediana).",
+                    colorTheme: "pink",
+                    items: [
+                        { id: "ck1", name: "Pizza Brownie", desc: "Base de brownie decorada como pizza (Mediana).", price: "60" },
+                        { id: "ck2", name: "Classic Brownie Cake", desc: "Mediana 12-15 porciones.", price: "56" },
+                        { id: "ck3", name: "Red Velvet Brownie Cake", desc: "Mediana.", price: "72" },
+                        { id: "ck4", name: "Cookie Brownie Pizza", desc: "Mediana.", price: "74" }
+                    ]
+                },
+                {
+                    id: "cat_toppings",
+                    name: "Toppings",
+                    iconType: "toppings",
+                    visible: true,
+                    description: "Elige tu topping favorito para personalizar.",
+                    colorTheme: "sky",
+                    items: [
+                        { id: "tp1", name: "Untables", desc: "Nutella, Chocolate Blanco, Dulce de Leche.", price: "" },
+                        { id: "tp2", name: "Chocolates", desc: "Milky Way, Snickers, M&M's, Chocolate Blanco, Oreo, Reese's, Marshmallow, Toronto, Hershey's, Rikiti, Cri-Cri, Chocolate con Leche Savoy.", price: "" },
+                        { id: "tp3", name: "Extra de Topping", desc: "Mini, Mediana, Grande, Extra Grande (Consultar costos).", price: "" }
+                    ]
+                }
+            ]
+        };
+
+        // ==========================================
+        // CONFIGURACIÓN FIREBASE GLOBAL
+        // ==========================================
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        const { initializeApp, getFirestore, doc, onSnapshot, setDoc, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } = window.firebaseApp;
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ==========================================
+        // COMPONENTES REACT
+        // ==========================================
+        
+        const { useState, useEffect, useRef } = React;
+        const { createRoot } = ReactDOM;
+
+        // --- Helper de Iconos ---
+        const Icon = ({ type, size = 24, className = "" }) => {
+            if (CUSTOM_ICONS[type]) {
+                return (
+                    <div className={className} style={{ width: size, height: size }}>
+                        {CUSTOM_ICONS[type]}
+                    </div>
+                );
+            }
+            return (
+                <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+            );
+        };
+
+        // --- Componente: Login Admin ---
+        const AdminLogin = ({ onLogin, onClose }) => {
+            const [pass, setPass] = useState("");
+            const [error, setError] = useState("");
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (pass === "admin123*") {
+                    onLogin();
+                    onClose();
+                } else {
+                    setError("Contraseña incorrecta");
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full border border-[#8B4513]/20">
+                        <h3 className="text-xl font-serif text-[#5D4037] mb-4 text-center">Acceso Admin</h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <input 
+                                type="password" 
+                                placeholder="Contraseña" 
+                                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B4513]"
+                                value={pass}
+                                onChange={e => setPass(e.target.value)}
+                            />
+                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                            <div className="flex gap-2">
+                                <button type="button" onClick={onClose} className="flex-1 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                                <button type="submit" className="flex-1 py-2 bg-[#8B4513] text-white rounded-lg hover:bg-[#6d360f]">Entrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Componente: Editor de Categoría ---
+        const CategoryEditor = ({ category, onSave, onCancel }) => {
+            const [name, setName] = useState(category ? category.name : "");
+            const [desc, setDesc] = useState(category ? category.description : "");
+            const [icon, setIcon] = useState(category ? category.iconType : "brownie");
+            const [theme, setTheme] = useState(category ? category.colorTheme : "coffee");
+            const [visible, setVisible] = useState(category ? category.visible : true);
+
+            const icons = Object.keys(CUSTOM_ICONS);
+            const themes = Object.keys(THEMES);
+
+            const handleSave = () => {
+                onSave({
+                    id: category ? category.id : Date.now().toString(),
+                    name, description: desc, iconType: icon, colorTheme: theme, visible, items: category ? category.items : []
+                });
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white w-full sm:max-w-lg p-6 rounded-t-2xl sm:rounded-2xl animate-slide-up max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-bold mb-4 font-serif text-[#5D4037]">{category ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Nombre</label>
+                                <input value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border-b-2 border-[#8B4513] focus:outline-none bg-transparent" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Descripción</label>
+                                <input value={desc} onChange={e => setDesc(e.target.value)} className="w-full p-2 border-b border-gray-300 focus:outline-none bg-transparent" />
+                            </div>
+                            
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Icono</label>
+                                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                                    {icons.map(ic => (
+                                        <button key={ic} onClick={() => setIcon(ic)} 
+                                            className={`p-3 rounded-full flex-shrink-0 border transition-transform hover:scale-105 ${icon === ic ? 'bg-[#8B4513] text-white border-[#8B4513] shadow-lg' : 'bg-gray-100 text-gray-500 border-transparent'}`}>
+                                            <Icon type={ic} size={20} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                             <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Color Tema</label>
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                    {themes.map(t => (
+                                        <button key={t} onClick={() => setTheme(t)} 
+                                            className={`w-8 h-8 rounded-full border-2 flex-shrink-0 transition-transform ${theme === t ? 'border-black scale-110 shadow-md' : 'border-transparent hover:scale-105'} ${THEMES[t].bg}`}>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input type="checkbox" checked={visible} onChange={e => setVisible(e.target.checked)} className="w-5 h-5 accent-[#8B4513]" />
+                                <span className="text-sm">Visible en Menú</span>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={onCancel} className="flex-1 py-3 text-gray-500 font-bold">Cancelar</button>
+                            <button onClick={handleSave} className="flex-1 py-3 bg-[#8B4513] text-white rounded-xl font-bold shadow-lg shadow-[#8B4513]/30">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Componente: Editor de Item ---
+        const ItemEditor = ({ item, onSave, onCancel }) => {
+            const [name, setName] = useState(item ? item.name : "");
+            const [desc, setDesc] = useState(item ? item.desc : "");
+            const [price, setPrice] = useState(item ? item.price : "");
+
+            const handleSave = () => {
+                onSave({
+                    id: item ? item.id : Date.now().toString(),
+                    name, desc, price
+                });
+            };
+
+            return (
+                 <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white w-full sm:max-w-lg p-6 rounded-t-2xl sm:rounded-2xl animate-slide-up">
+                        <h3 className="text-xl font-bold mb-4 font-serif text-[#5D4037]">{item ? 'Editar Plato' : 'Nuevo Plato'}</h3>
+                        <div className="space-y-4">
+                            <input placeholder="Nombre del plato" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border-b-2 border-[#8B4513] focus:outline-none text-lg font-serif" />
+                            <textarea placeholder="Descripción" value={desc} onChange={e => setDesc(e.target.value)} className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none h-20 text-sm text-gray-600" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl font-bold text-[#8B4513]">$</span>
+                                <input type="text" placeholder="Precio (opcional)" value={price} onChange={e => setPrice(e.target.value)} className="w-full p-2 border-b border-gray-300 focus:outline-none text-xl font-bold" />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={onCancel} className="flex-1 py-3 text-gray-500 font-bold">Cancelar</button>
+                            <button onClick={handleSave} className="flex-1 py-3 bg-[#8B4513] text-white rounded-xl font-bold shadow-lg shadow-[#8B4513]/30">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Componente: Item de Menú ---
+        const MenuItem = ({ item, isAdmin, onEdit, onDelete, theme }) => (
+            <div className={`flex justify-between items-start py-4 border-b last:border-0 hover:bg-white/10 transition-colors px-3 rounded-lg group ${theme.border} border-opacity-30`}>
+                <div className="flex-1 pr-4">
+                    <div className="flex items-center gap-2">
+                        {/* Use dynamic theme text color and remove brightness adjustment to respect theme */}
+                        <h4 className={`font-bold text-lg font-serif leading-tight ${theme.text}`}>{item.name}</h4>
+                        {isAdmin && (
+                            <button onClick={onEdit} className="text-blue-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                        )}
+                    </div>
+                    {/* Updated to use theme text color with opacity for description */}
+                    <p className={`text-sm mt-1 leading-relaxed ${theme.text} opacity-80`}>{item.desc}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                    {item.price && <span className={`font-bold text-lg whitespace-nowrap font-serif ${theme.text}`}>${item.price}</span>}
+                    {isAdmin && (
+                        <button onClick={onDelete} className="text-red-400 opacity-100 sm:opacity-0 group-hover:opacity-100 p-1">
+                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+
+        // --- Componente: Categoría Acordeón ---
+        const CategorySection = ({ category, index, totalCount, isAdmin, onUpdateCategory, onDeleteCategory, onMoveCategory, isOpen, onToggle }) => {
+            const [isEditing, setIsEditing] = useState(false);
+            const [editingItem, setEditingItem] = useState(null);
+            const [isAddingItem, setIsAddingItem] = useState(false);
+
+            const theme = THEMES[category.colorTheme] || THEMES.coffee;
+
+            // Admin: Toggle Visibilidad
+            const toggleVisibility = (e) => {
+                e.stopPropagation();
+                onUpdateCategory({ ...category, visible: !category.visible });
+            };
+
+            // Admin: Guardar Item
+            const handleSaveItem = (itemData) => {
+                const newItems = isAddingItem 
+                    ? [...category.items, itemData]
+                    : category.items.map(i => i.id === itemData.id ? itemData : i);
+                
+                onUpdateCategory({ ...category, items: newItems });
+                setEditingItem(null);
+                setIsAddingItem(false);
+            };
+
+            // Admin: Eliminar Item
+            const handleDeleteItem = (itemId) => {
+                if(confirm('¿Borrar este plato?')) {
+                    const newItems = category.items.filter(i => i.id !== itemId);
+                    onUpdateCategory({ ...category, items: newItems });
+                }
+            };
+
+            if (!category.visible && !isAdmin) return null;
+
+            return (
+                <div className={`mb-4 rounded-xl shadow-sm overflow-hidden transition-all duration-300 border ${category.visible ? 'opacity-100' : 'opacity-70'} ${theme.bg} ${theme.border}`}>
+                    
+                    {/* Header Acordeón */}
+                    <div 
+                        onClick={onToggle} 
+                        className={`p-4 flex items-center justify-between cursor-pointer select-none`}
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-lg ${theme.accent} ${theme.text}`}>
+                                <Icon type={category.iconType} />
+                            </div>
+                            <div>
+                                <h3 className={`font-serif text-xl font-bold ${theme.text}`}>{category.name}</h3>
+                                {category.description && <p className={`text-xs ${theme.text} opacity-80`}>{category.description}</p>}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {isAdmin && (
+                                <div className="flex items-center bg-white/50 rounded-full px-2 py-1 shadow-sm gap-1 mr-2" onClick={e => e.stopPropagation()}>
+                                    {/* Botones de Reordenamiento */}
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onMoveCategory(index, -1); }} 
+                                        disabled={index === 0}
+                                        className={`p-1 hover:bg-black/10 rounded ${index === 0 ? 'text-gray-300' : 'text-gray-600'}`}
+                                        title="Subir"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onMoveCategory(index, 1); }} 
+                                        disabled={index === totalCount - 1}
+                                        className={`p-1 hover:bg-black/10 rounded ${index === totalCount - 1 ? 'text-gray-300' : 'text-gray-600'}`}
+                                        title="Bajar"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                                    </button>
+                                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                                    
+                                    <button onClick={(e) => {e.stopPropagation(); setIsEditing(true)}} className="p-1 text-blue-500 hover:bg-blue-50 rounded" title="Editar">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    </button>
+                                    <button onClick={toggleVisibility} className={`p-1 rounded ${category.visible ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-200'}`} title="Visibilidad">
+                                        {category.visible 
+                                            ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                            : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                        }
+                                    </button>
+                                    <button onClick={(e) => {e.stopPropagation(); if(confirm('¿Borrar categoría completa?')) onDeleteCategory(category.id)}} className="p-1 text-red-400 hover:bg-red-50 rounded" title="Borrar">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </button>
+                                </div>
+                            )}
+                            <div className={`transform transition-transform ${isOpen ? 'rotate-180' : ''} ${theme.text}`}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Contenido Items */}
+                    <div className={`transition-all duration-500 ease-in-out bg-white/10 ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                        <div className="p-4 pt-0">
+                            {category.items.length === 0 && <p className="text-center text-gray-400 py-4 italic">No hay platos aún.</p>}
+                            
+                            {category.items.map(item => (
+                                <MenuItem 
+                                    key={item.id} 
+                                    item={item} 
+                                    theme={theme}
+                                    isAdmin={isAdmin}
+                                    onEdit={() => setEditingItem(item)}
+                                    onDelete={() => handleDeleteItem(item.id)}
+                                />
+                            ))}
+
+                            {isAdmin && (
+                                <button 
+                                    onClick={() => setIsAddingItem(true)}
+                                    className={`w-full mt-4 py-3 border-2 border-dashed rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-white/50 ${theme.border} ${theme.text} opacity-70`}
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    Agregar Plato
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Modales de Edición */}
+                    {isEditing && (
+                        <CategoryEditor 
+                            category={category} 
+                            onSave={(updatedCat) => { onUpdateCategory(updatedCat); setIsEditing(false); }}
+                            onCancel={() => setIsEditing(false)}
+                        />
+                    )}
+
+                    {(isAddingItem || editingItem) && (
+                        <ItemEditor 
+                            item={editingItem}
+                            onSave={handleSaveItem}
+                            onCancel={() => { setEditingItem(null); setIsAddingItem(false); }}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        // --- Componente Principal: App ---
+        const App = () => {
+            const [data, setData] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
+            const [isAddingCat, setIsAddingCat] = useState(false);
+            const [user, setUser] = useState(null);
+            const [openCategoryId, setOpenCategoryId] = useState(null); // Initialize as closed
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+
+                // CAMBIO A menu_v3 PARA FORZAR RECARGA DE DATOS NUEVOS Y ESTRUCTURA DE ICONOS
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'restaurant_data', 'menu_v3');
+
+                const unsubscribe = onSnapshot(docRef, async (snapshot) => {
+                    if (snapshot.exists()) {
+                        setData(snapshot.data());
+                        setLoading(false);
+                    } else {
+                        console.log("Seeding v3 Database...");
+                        try {
+                            await setDoc(docRef, SEED_DATA);
+                        } catch(e) {
+                            console.error("Error seeding:", e);
+                        }
+                    }
+                });
+
+                return () => unsubscribe();
+            }, [user]);
+
+            const saveToFirebase = async (newData) => {
+                if (!user) return;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'restaurant_data', 'menu_v3');
+                await setDoc(docRef, newData);
+            };
+
+            const handleUpdateCategory = (updatedCat) => {
+                const newCats = data.categories.map(c => c.id === updatedCat.id ? updatedCat : c);
+                saveToFirebase({ categories: newCats });
+            };
+
+            const handleDeleteCategory = (catId) => {
+                const newCats = data.categories.filter(c => c.id !== catId);
+                saveToFirebase({ categories: newCats });
+            };
+
+            const handleAddCategory = (newCat) => {
+                const newCats = [...data.categories, newCat];
+                saveToFirebase({ categories: newCats });
+                setIsAddingCat(false);
+            };
+
+            // FUNCIÓN PARA MOVER CATEGORÍAS
+            const handleMoveCategory = (index, direction) => {
+                const newCats = [...data.categories];
+                const targetIndex = index + direction;
+
+                // Validación de límites
+                if (targetIndex < 0 || targetIndex >= newCats.length) return;
+
+                // Swap (intercambio) de elementos
+                [newCats[index], newCats[targetIndex]] = [newCats[targetIndex], newCats[index]];
+
+                saveToFirebase({ categories: newCats });
+            };
+
+            if (loading) return (
+                <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7]">
+                    <div className="loader mb-4"></div>
+                    <p className="text-[#8B4513] font-serif tracking-widest animate-pulse">CARGANDO...</p>
+                </div>
+            );
+
+            if (!data && !loading) return (
+                 <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7]">
+                    <p className="text-[#8B4513] font-serif">Iniciando sistema...</p>
+                </div>
+            )
+
+            return (
+                <div className="min-h-screen pb-20 max-w-md mx-auto bg-[#FDFBF7] shadow-2xl relative overflow-hidden">
+                    
+                    {/* Header con Logo */}
+                    <header className="bg-white p-6 pb-8 rounded-b-[40px] shadow-sm relative overflow-hidden flex flex-col items-center justify-center border-b border-[#EFEBE9]">
+                        <div className="w-48 h-24 relative flex items-center justify-center">
+                            {/* Logo SVG Elegante */}
+                            <svg viewBox="0 0 300 150" className="w-full h-full text-[#5D4037]">
+                                <defs>
+                                    <path id="curve" d="M30,80 Q150,130 270,80" fill="transparent"/>
+                                </defs>
+                                <text width="300" x="150" y="50" textAnchor="middle" className="font-serif text-4xl font-bold tracking-widest" fill="currentColor">AMERICAN</text>
+                                <text width="300" textAnchor="middle" className="font-script text-5xl" fill="#D2691E">
+                                    <textPath href="#curve" startOffset="50%" textAnchor="middle">Brownies</textPath>
+                                </text>
+                                <path d="M100,100 L200,100" stroke="currentColor" strokeWidth="1" strokeDasharray="5,5" />
+                            </svg>
+                        </div>
+                    </header>
+
+                    {/* Lista de Categorías */}
+                    <main className="p-4 -mt-4 relative z-20">
+                        {data?.categories.map((cat, index) => (
+                            <CategorySection 
+                                key={cat.id} 
+                                category={cat} 
+                                index={index}
+                                totalCount={data.categories.length}
+                                isOpen={openCategoryId === cat.id}
+                                onToggle={() => setOpenCategoryId(openCategoryId === cat.id ? null : cat.id)}
+                                isAdmin={isAdmin}
+                                onUpdateCategory={handleUpdateCategory}
+                                onDeleteCategory={handleDeleteCategory}
+                                onMoveCategory={handleMoveCategory}
+                            />
+                        ))}
+
+                        {isAdmin && (
+                            <button 
+                                onClick={() => setIsAddingCat(true)}
+                                className="w-full py-4 bg-[#4A3B32] text-white rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 hover:bg-[#3E3229] transition-transform active:scale-95"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                Nueva Categoría
+                            </button>
+                        )}
+                    </main>
+
+                    {/* Footer Contacto & Legal */}
+                    <footer className="mt-8 bg-white border-t border-[#EFEBE9] px-6 py-8 rounded-t-[30px]">
+                        
+                        {/* Redes y Contacto */}
+                        <div className="flex justify-center gap-4 mb-8">
+                             <a href="https://instagram.com/americanbrownies" target="_blank" rel="noopener noreferrer" 
+                               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-tr from-purple-500 to-orange-400 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                                <span className="font-bold text-sm">@americanbrownies</span>
+                            </a>
+                             <a href="tel:04127609460" 
+                               className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                <span className="font-bold text-sm">0412-7609460</span>
+                            </a>
+                        </div>
+
+                        {/* Nota Legal */}
+                        <div className="text-[10px] text-gray-400 text-center leading-relaxed border-t border-gray-100 pt-4">
+                            <p>Nuestros precios están expresados en dolares y se calculan en bolívares según la tasa oficial del BCV del día anterior.</p>
+                            <p className="mt-1">Te facturaremos en bolívares, como lo indica la Providencia N° 059-2021.</p>
+                        </div>
+
+                        {/* Botón Admin Discreto */}
+                        <div className="mt-6 flex justify-center">
+                            <button 
+                                onClick={() => !isAdmin && setShowLogin(true)}
+                                className={`p-2 rounded-full transition-colors ${isAdmin ? 'text-green-500 bg-green-50' : 'text-gray-200 hover:text-gray-400'}`}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            </button>
+                        </div>
+                         {isAdmin && (
+                            <button onClick={() => setIsAdmin(false)} className="block mx-auto mt-2 text-xs underline text-gray-400 hover:text-[#8B4513]">Salir Admin</button>
+                        )}
+                    </footer>
+
+                    {/* Modales Globales */}
+                    {showLogin && <AdminLogin onLogin={() => setIsAdmin(true)} onClose={() => setShowLogin(false)} />}
+                    {isAddingCat && <CategoryEditor onSave={handleAddCategory} onCancel={() => setIsAddingCat(false)} />}
+                    
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
