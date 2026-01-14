@@ -22,9 +22,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         
-        // Expose Firebase to window for React component access
+        // Exponer Firebase a la ventana global para React
         window.firebaseApp = { 
             initializeApp, 
             getFirestore, 
@@ -38,8 +38,7 @@
             collection,
             getAuth, 
             signInAnonymously, 
-            onAuthStateChanged,
-            signInWithCustomToken 
+            onAuthStateChanged
         };
     </script>
 
@@ -57,22 +56,41 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #8B4513; border-radius: 4px; }
         
+        /* Ocultar scrollbar pero mantener funcionalidad */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
         .loader {
             border: 4px solid #f3f3f3; border-top: 4px solid #8B4513;
             border-radius: 50%; width: 40px; height: 40px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Animation for accordion */
-        .accordion-enter { max-height: 0; opacity: 0; }
-        .accordion-enter-active { max-height: 1000px; opacity: 1; transition: all 500ms ease-in-out; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // ==========================================
+        // CONFIGURACIÓN DE FIREBASE (PRODUCCIÓN)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJaU9OLKtDYvvWGuL-kyx4H9R4byIlSHA",
+            authDomain: "american-brownies.firebaseapp.com",
+            projectId: "american-brownies",
+            storageBucket: "american-brownies.firebasestorage.app",
+            messagingSenderId: "399161601038",
+            appId: "1:399161601038:web:6257c6156157493a50a05f"
+        };
+
+        // Inicializar servicios
+        const { initializeApp, getFirestore, doc, onSnapshot, setDoc, getAuth, signInAnonymously, onAuthStateChanged } = window.firebaseApp;
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
         // ==========================================
         // ICONOS PERSONALIZADOS (SVG Inline)
         // ==========================================
@@ -90,6 +108,7 @@
             cookie: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
+                    {/* Diseño Linzer Centrado */}
                     <path d="M12 17l-1-1c-2.5-2-4-3.5-4-5.5a2.5 2.5 0 0 1 4-2c.5 0 1 .5 1 .5s.5-.5 1-.5a2.5 2.5 0 0 1 4 2c0 2-1.5 3.5-4 5.5z" strokeWidth="1.5" />
                 </svg>
             ),
@@ -116,6 +135,7 @@
                 </svg>
             ),
             shake: (
+                 /* Vaso estilo Starbucks */
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 21h10l1.5-10h-13z" />
                     <path d="M5.5 11h13" />
@@ -125,11 +145,13 @@
                 </svg>
             ),
              fit: (
+                 /* Rayito */
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor" fillOpacity="0.1" />
                 </svg>
             ),
             brunch: (
+                 /* Torre de Panquecas */
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <ellipse cx="12" cy="18" rx="8" ry="3" />
                     <ellipse cx="12" cy="14" rx="7.5" ry="2.8" />
@@ -139,6 +161,7 @@
                 </svg>
             ),
             croissant: (
+                 /* Croissant Realista */
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7 19c-3-2-4-5-2-9 2-3 6-4 9-2 4 2 5 6 3 9" />
                     <path d="M7 19c2 2 5 2 8 0" />
@@ -150,6 +173,7 @@
                 </svg>
             ),
             toppings: (
+                /* Nutella y Fresa */
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 10h10v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V10z" />
                     <rect x="4" y="6" width="12" height="4" rx="1" />
@@ -158,7 +182,7 @@
                     <path d="M17 12c0-1 1-2 2-2s2 1 2 2" />
                 </svg>
             ),
-            // --- NUEVOS ICONOS ---
+            // --- NUEVOS ICONOS PARA ADMIN ---
             waffle: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -247,7 +271,7 @@
         };
 
         // ==========================================
-        // CONFIGURACIÓN DE COLORES
+        // COLORES Y TEMAS
         // ==========================================
         const THEMES = {
             coffee:   { bg: "bg-[#EFEBE9]", text: "text-[#5D4037]", accent: "bg-[#D7CCC8]", border: "border-[#8D6E63]" },
@@ -260,7 +284,7 @@
             pink:     { bg: "bg-[#FCE4EC]", text: "text-[#C2185B]", accent: "bg-[#F8BBD0]", border: "border-[#F06292]" },
             sky:      { bg: "bg-[#E1F5FE]", text: "text-[#0277BD]", accent: "bg-[#B3E5FC]", border: "border-[#4FC3F7]" },
             dark:     { bg: "bg-[#3E2723]", text: "text-[#EFEBE9]", accent: "bg-[#5D4037]", border: "border-[#8D6E63]" },
-            // --- NUEVOS COLORES ---
+            // Nuevos
             teal:     { bg: "bg-[#E0F2F1]", text: "text-[#00695C]", accent: "bg-[#B2DFDB]", border: "border-[#4DB6AC]" },
             indigo:   { bg: "bg-[#E8EAF6]", text: "text-[#283593]", accent: "bg-[#C5CAE9]", border: "border-[#7986CB]" },
             gold:     { bg: "bg-[#FFF8E1]", text: "text-[#FF6F00]", accent: "bg-[#FFECB3]", border: "border-[#FFCA28]" },
@@ -268,7 +292,7 @@
         };
 
         // ==========================================
-        // DATA SEMILLA (Actualizada v3)
+        // DATA SEMILLA
         // ==========================================
         const SEED_DATA = {
             categories: [
@@ -426,21 +450,8 @@
         };
 
         // ==========================================
-        // CONFIGURACIÓN FIREBASE GLOBAL
-        // ==========================================
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        const { initializeApp, getFirestore, doc, onSnapshot, setDoc, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } = window.firebaseApp;
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // ==========================================
         // COMPONENTES REACT
         // ==========================================
-        
         const { useState, useEffect, useRef } = React;
         const { createRoot } = ReactDOM;
 
@@ -608,7 +619,6 @@
             <div className={`flex justify-between items-start py-4 border-b last:border-0 hover:bg-white/10 transition-colors px-3 rounded-lg group ${theme.border} border-opacity-30`}>
                 <div className="flex-1 pr-4">
                     <div className="flex items-center gap-2">
-                        {/* Use dynamic theme text color and remove brightness adjustment to respect theme */}
                         <h4 className={`font-bold text-lg font-serif leading-tight ${theme.text}`}>{item.name}</h4>
                         {isAdmin && (
                             <button onClick={onEdit} className="text-blue-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -616,7 +626,6 @@
                             </button>
                         )}
                     </div>
-                    {/* Updated to use theme text color with opacity for description */}
                     <p className={`text-sm mt-1 leading-relaxed ${theme.text} opacity-80`}>{item.desc}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -638,13 +647,11 @@
 
             const theme = THEMES[category.colorTheme] || THEMES.coffee;
 
-            // Admin: Toggle Visibilidad
             const toggleVisibility = (e) => {
                 e.stopPropagation();
                 onUpdateCategory({ ...category, visible: !category.visible });
             };
 
-            // Admin: Guardar Item
             const handleSaveItem = (itemData) => {
                 const newItems = isAddingItem 
                     ? [...category.items, itemData]
@@ -655,7 +662,6 @@
                 setIsAddingItem(false);
             };
 
-            // Admin: Eliminar Item
             const handleDeleteItem = (itemId) => {
                 if(confirm('¿Borrar este plato?')) {
                     const newItems = category.items.filter(i => i.id !== itemId);
@@ -667,12 +673,7 @@
 
             return (
                 <div className={`mb-4 rounded-xl shadow-sm overflow-hidden transition-all duration-300 border ${category.visible ? 'opacity-100' : 'opacity-70'} ${theme.bg} ${theme.border}`}>
-                    
-                    {/* Header Acordeón */}
-                    <div 
-                        onClick={onToggle} 
-                        className={`p-4 flex items-center justify-between cursor-pointer select-none`}
-                    >
+                    <div onClick={onToggle} className={`p-4 flex items-center justify-between cursor-pointer select-none`}>
                         <div className="flex items-center gap-4">
                             <div className={`p-2 rounded-lg ${theme.accent} ${theme.text}`}>
                                 <Icon type={category.iconType} />
@@ -685,12 +686,10 @@
                         <div className="flex items-center gap-3">
                             {isAdmin && (
                                 <div className="flex items-center bg-white/50 rounded-full px-2 py-1 shadow-sm gap-1 mr-2" onClick={e => e.stopPropagation()}>
-                                    {/* Botones de Reordenamiento */}
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); onMoveCategory(index, -1); }} 
                                         disabled={index === 0}
                                         className={`p-1 hover:bg-black/10 rounded ${index === 0 ? 'text-gray-300' : 'text-gray-600'}`}
-                                        title="Subir"
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                                     </button>
@@ -698,22 +697,20 @@
                                         onClick={(e) => { e.stopPropagation(); onMoveCategory(index, 1); }} 
                                         disabled={index === totalCount - 1}
                                         className={`p-1 hover:bg-black/10 rounded ${index === totalCount - 1 ? 'text-gray-300' : 'text-gray-600'}`}
-                                        title="Bajar"
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
                                     </button>
                                     <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                                    
-                                    <button onClick={(e) => {e.stopPropagation(); setIsEditing(true)}} className="p-1 text-blue-500 hover:bg-blue-50 rounded" title="Editar">
+                                    <button onClick={(e) => {e.stopPropagation(); setIsEditing(true)}} className="p-1 text-blue-500 hover:bg-blue-50 rounded">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                     </button>
-                                    <button onClick={toggleVisibility} className={`p-1 rounded ${category.visible ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-200'}`} title="Visibilidad">
+                                    <button onClick={toggleVisibility} className={`p-1 rounded ${category.visible ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-200'}`}>
                                         {category.visible 
                                             ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                             : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                                         }
                                     </button>
-                                    <button onClick={(e) => {e.stopPropagation(); if(confirm('¿Borrar categoría completa?')) onDeleteCategory(category.id)}} className="p-1 text-red-400 hover:bg-red-50 rounded" title="Borrar">
+                                    <button onClick={(e) => {e.stopPropagation(); if(confirm('¿Borrar categoría completa?')) onDeleteCategory(category.id)}} className="p-1 text-red-400 hover:bg-red-50 rounded">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                     </button>
                                 </div>
@@ -724,27 +721,14 @@
                         </div>
                     </div>
 
-                    {/* Contenido Items */}
                     <div className={`transition-all duration-500 ease-in-out bg-white/10 ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                         <div className="p-4 pt-0">
                             {category.items.length === 0 && <p className="text-center text-gray-400 py-4 italic">No hay platos aún.</p>}
-                            
                             {category.items.map(item => (
-                                <MenuItem 
-                                    key={item.id} 
-                                    item={item} 
-                                    theme={theme}
-                                    isAdmin={isAdmin}
-                                    onEdit={() => setEditingItem(item)}
-                                    onDelete={() => handleDeleteItem(item.id)}
-                                />
+                                <MenuItem key={item.id} item={item} theme={theme} isAdmin={isAdmin} onEdit={() => setEditingItem(item)} onDelete={() => handleDeleteItem(item.id)} />
                             ))}
-
                             {isAdmin && (
-                                <button 
-                                    onClick={() => setIsAddingItem(true)}
-                                    className={`w-full mt-4 py-3 border-2 border-dashed rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-white/50 ${theme.border} ${theme.text} opacity-70`}
-                                >
+                                <button onClick={() => setIsAddingItem(true)} className={`w-full mt-4 py-3 border-2 border-dashed rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-white/50 ${theme.border} ${theme.text} opacity-70`}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                     Agregar Plato
                                 </button>
@@ -752,22 +736,8 @@
                         </div>
                     </div>
 
-                    {/* Modales de Edición */}
-                    {isEditing && (
-                        <CategoryEditor 
-                            category={category} 
-                            onSave={(updatedCat) => { onUpdateCategory(updatedCat); setIsEditing(false); }}
-                            onCancel={() => setIsEditing(false)}
-                        />
-                    )}
-
-                    {(isAddingItem || editingItem) && (
-                        <ItemEditor 
-                            item={editingItem}
-                            onSave={handleSaveItem}
-                            onCancel={() => { setEditingItem(null); setIsAddingItem(false); }}
-                        />
-                    )}
+                    {isEditing && <CategoryEditor category={category} onSave={(updatedCat) => { onUpdateCategory(updatedCat); setIsEditing(false); }} onCancel={() => setIsEditing(false)} />}
+                    {(isAddingItem || editingItem) && <ItemEditor item={editingItem} onSave={handleSaveItem} onCancel={() => { setEditingItem(null); setIsAddingItem(false); }} />}
                 </div>
             );
         };
@@ -780,15 +750,11 @@
             const [showLogin, setShowLogin] = useState(false);
             const [isAddingCat, setIsAddingCat] = useState(false);
             const [user, setUser] = useState(null);
-            const [openCategoryId, setOpenCategoryId] = useState(null); // Initialize as closed
+            const [openCategoryId, setOpenCategoryId] = useState(null);
 
             useEffect(() => {
                 const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    await signInAnonymously(auth);
                 };
                 initAuth();
                 const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
@@ -797,16 +763,14 @@
 
             useEffect(() => {
                 if (!user) return;
-
-                // CAMBIO A menu_v3 PARA FORZAR RECARGA DE DATOS NUEVOS Y ESTRUCTURA DE ICONOS
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'restaurant_data', 'menu_v3');
+                const docRef = doc(db, 'restaurante', 'menu'); // RUTA PRODUCCIÓN
 
                 const unsubscribe = onSnapshot(docRef, async (snapshot) => {
                     if (snapshot.exists()) {
                         setData(snapshot.data());
                         setLoading(false);
                     } else {
-                        console.log("Seeding v3 Database...");
+                        console.log("Seeding Database...");
                         try {
                             await setDoc(docRef, SEED_DATA);
                         } catch(e) {
@@ -814,13 +778,12 @@
                         }
                     }
                 });
-
                 return () => unsubscribe();
             }, [user]);
 
             const saveToFirebase = async (newData) => {
                 if (!user) return;
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'restaurant_data', 'menu_v3');
+                const docRef = doc(db, 'restaurante', 'menu');
                 await setDoc(docRef, newData);
             };
 
@@ -840,17 +803,11 @@
                 setIsAddingCat(false);
             };
 
-            // FUNCIÓN PARA MOVER CATEGORÍAS
             const handleMoveCategory = (index, direction) => {
                 const newCats = [...data.categories];
                 const targetIndex = index + direction;
-
-                // Validación de límites
                 if (targetIndex < 0 || targetIndex >= newCats.length) return;
-
-                // Swap (intercambio) de elementos
                 [newCats[index], newCats[targetIndex]] = [newCats[targetIndex], newCats[index]];
-
                 saveToFirebase({ categories: newCats });
             };
 
@@ -869,15 +826,10 @@
 
             return (
                 <div className="min-h-screen pb-20 max-w-md mx-auto bg-[#FDFBF7] shadow-2xl relative overflow-hidden">
-                    
-                    {/* Header con Logo */}
                     <header className="bg-white p-6 pb-8 rounded-b-[40px] shadow-sm relative overflow-hidden flex flex-col items-center justify-center border-b border-[#EFEBE9]">
                         <div className="w-48 h-24 relative flex items-center justify-center">
-                            {/* Logo SVG Elegante */}
                             <svg viewBox="0 0 300 150" className="w-full h-full text-[#5D4037]">
-                                <defs>
-                                    <path id="curve" d="M30,80 Q150,130 270,80" fill="transparent"/>
-                                </defs>
+                                <defs><path id="curve" d="M30,80 Q150,130 270,80" fill="transparent"/></defs>
                                 <text width="300" x="150" y="50" textAnchor="middle" className="font-serif text-4xl font-bold tracking-widest" fill="currentColor">AMERICAN</text>
                                 <text width="300" textAnchor="middle" className="font-script text-5xl" fill="#D2691E">
                                     <textPath href="#curve" startOffset="50%" textAnchor="middle">Brownies</textPath>
@@ -887,7 +839,6 @@
                         </div>
                     </header>
 
-                    {/* Lista de Categorías */}
                     <main className="p-4 -mt-4 relative z-20">
                         {data?.categories.map((cat, index) => (
                             <CategorySection 
@@ -905,57 +856,38 @@
                         ))}
 
                         {isAdmin && (
-                            <button 
-                                onClick={() => setIsAddingCat(true)}
-                                className="w-full py-4 bg-[#4A3B32] text-white rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 hover:bg-[#3E3229] transition-transform active:scale-95"
-                            >
+                            <button onClick={() => setIsAddingCat(true)} className="w-full py-4 bg-[#4A3B32] text-white rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 hover:bg-[#3E3229] transition-transform active:scale-95">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                                 Nueva Categoría
                             </button>
                         )}
                     </main>
 
-                    {/* Footer Contacto & Legal */}
                     <footer className="mt-8 bg-white border-t border-[#EFEBE9] px-6 py-8 rounded-t-[30px]">
-                        
-                        {/* Redes y Contacto */}
                         <div className="flex justify-center gap-4 mb-8">
-                             <a href="https://instagram.com/americanbrownies" target="_blank" rel="noopener noreferrer" 
-                               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-tr from-purple-500 to-orange-400 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                             <a href="https://instagram.com/americanbrownies" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-gradient-to-tr from-purple-500 to-orange-400 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
                                 <span className="font-bold text-sm">@americanbrownies</span>
                             </a>
-                             <a href="tel:04127609460" 
-                               className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                             <a href="tel:04127609460" className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                                 <span className="font-bold text-sm">0412-7609460</span>
                             </a>
                         </div>
-
-                        {/* Nota Legal */}
                         <div className="text-[10px] text-gray-400 text-center leading-relaxed border-t border-gray-100 pt-4">
                             <p>Nuestros precios están expresados en dolares y se calculan en bolívares según la tasa oficial del BCV del día anterior.</p>
                             <p className="mt-1">Te facturaremos en bolívares, como lo indica la Providencia N° 059-2021.</p>
                         </div>
-
-                        {/* Botón Admin Discreto */}
                         <div className="mt-6 flex justify-center">
-                            <button 
-                                onClick={() => !isAdmin && setShowLogin(true)}
-                                className={`p-2 rounded-full transition-colors ${isAdmin ? 'text-green-500 bg-green-50' : 'text-gray-200 hover:text-gray-400'}`}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            <button onClick={() => !isAdmin && setShowLogin(true)} className={`p-2 rounded-full transition-colors ${isAdmin ? 'text-green-500 bg-green-50' : 'text-gray-200 hover:text-gray-400'}`}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                             </button>
                         </div>
-                         {isAdmin && (
-                            <button onClick={() => setIsAdmin(false)} className="block mx-auto mt-2 text-xs underline text-gray-400 hover:text-[#8B4513]">Salir Admin</button>
-                        )}
+                         {isAdmin && <button onClick={() => setIsAdmin(false)} className="block mx-auto mt-2 text-xs underline text-gray-400 hover:text-[#8B4513]">Salir Admin</button>}
                     </footer>
 
-                    {/* Modales Globales */}
                     {showLogin && <AdminLogin onLogin={() => setIsAdmin(true)} onClose={() => setShowLogin(false)} />}
                     {isAddingCat && <CategoryEditor onSave={handleAddCategory} onCancel={() => setIsAddingCat(false)} />}
-                    
                 </div>
             );
         };
